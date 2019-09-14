@@ -58,7 +58,7 @@ def euclideanDistance(data, dataRef=None):
 
 def gpsWeekCheck(t):
     """Makes sure the time is in the interval [-302400 302400] seconds, which
-    corresponds to number of seconds in the GPS week"""
+    corresponds to number of seconds in the GPS week"""  
     if t > 302400.0:
         t = t - 604800.0
     elif t < -302400.0:
@@ -135,7 +135,8 @@ class GPS:
         Same as lls2ecef, but accepts an X3D-style geoOrigin string for subtraction of it in ecef (gcc) cooridinates
         """
         if geoOrigin:
-            lon0, lat0, a0 = [float(c) for c in geoOrigin.split()]
+            coords = [float(c) for c in geoOrigin.split()] if isinstance(geoOrigin, str) else geoOrigin
+            lon0, lat0, a0 = coords
             x0, y0, z0 = cls.lla2ecef((lat0, lon0, a0))
         else:
             x0, y0, z0 = 0, 0, 0
@@ -183,9 +184,11 @@ class GPS:
         llaOrigin = cls.ecef2lla(origin)
         lat = radians(llaOrigin[0])
         lon = radians(llaOrigin[1])
-        Re2t = array([[-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)],
-                    [-sin(lon), cos(lon), 0],
-                    [-cos(lat)*cos(lon), -cos(lat)*sin(lon), -sin(lat)]])
+        Re2t = array([
+                   [-sin(lat)*cos(lon), -sin(lat)*sin(lon),  cos(lat)],
+                   [         -sin(lon),           cos(lon),         0],
+                   [-cos(lat)*cos(lon), -cos(lat)*sin(lon), -sin(lat)]
+               ])
         return list(dot(Re2t, array(ecef) - array(origin)))
 
     @classmethod
@@ -199,9 +202,11 @@ class GPS:
         llaOrigin = cls.ecef2lla(origin)
         lat = radians(llaOrigin[0])
         lon = radians(llaOrigin[1])
-        Rt2e = array([[-sin(lat)*cos(lon), -sin(lon), -cos(lat)*cos(lon)],
-                    [-sin(lat)*sin(lon), cos(lon), -cos(lat)*sin(lon)],
-                    [cos(lat), 0., -sin(lat)]])
+        Rt2e = array([
+                   [-sin(lat)*cos(lon), -sin(lon), -cos(lat)*cos(lon)],
+                   [-sin(lat)*sin(lon),  cos(lon), -cos(lat)*sin(lon)],
+                   [          cos(lat),        0.,          -sin(lat)]
+               ])
         return list(dot(Rt2e, array(ned)) + array(origin))
 
     @classmethod
