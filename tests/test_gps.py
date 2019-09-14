@@ -7,8 +7,6 @@ import distributed_interactive_simulation.RangeCoordinates as rc
 
 class GPSTestCase(unittest.TestCase):
     def setUp(self):
-        self.gps = GPS()
-
         self.base_origin = '1000 1000 1000'
 
         self.base_lla = (
@@ -59,47 +57,47 @@ class GPSTestCase(unittest.TestCase):
         f_l1 = f_gps * 1.54e6
         f_l2 = f_gps * 1.2e6
 
-        self.assertEqual(f_gps, self.gps.fGPS)
-        self.assertEqual(f_l1, self.gps.fL1)
-        self.assertEqual(f_l2, self.gps.fL2)
+        self.assertEqual(f_gps, GPS.fGPS)
+        self.assertEqual(f_l1, GPS.fL1)
+        self.assertEqual(f_l2, GPS.fL2)
 
     def test_lla2ecef(self):
-        ecef = self.gps.lla2ecef(self.base_lla)
+        ecef = GPS.lla2ecef(self.base_lla)
         assert_almost_equal(ecef, self.base_ecef, 6)
 
     def test_lla2utm(self):
-        utm = self.gps.lla2utm(self.base_lla)
+        utm = GPS.lla2utm(self.base_lla)
         self.assert_utm(utm)
 
     def test_ecef2lla(self):
-        lla = self.gps.ecef2lla(self.base_ecef)
+        lla = GPS.ecef2lla(self.base_ecef)
         assert_almost_equal(lla, self.base_lla, 6)       
 
     def test_ecef2utm(self):
-        utm = self.gps.ecef2utm(self.base_ecef)
+        utm = GPS.ecef2utm(self.base_ecef)
         self.assert_utm(utm)
 
     def test_ecef2ned(self):
         base_ori = [float(x) for x in self.base_origin.split(' ')]
-        ned = self.gps.ecef2ned(self.base_ecef, base_ori)
+        ned = GPS.ecef2ned(self.base_ecef, base_ori)
         assert_almost_equal(ned, list(self.base_ned), 6)
 
     def test_ecef2pae(self):
         base_ori = [float(x) for x in self.base_origin.split(' ')]
-        pae = self.gps.ecef2pae(self.base_ecef, base_ori)
+        pae = GPS.ecef2pae(self.base_ecef, base_ori)
         assert_almost_equal(pae, self.base_pae, 6)
 
     def test_ned2ecef(self):
         base_ori = [float(x) for x in self.base_origin.split(' ')]
-        ecef = self.gps.ned2ecef(self.base_ned, base_ori)
+        ecef = GPS.ned2ecef(self.base_ned, base_ori)
         assert_almost_equal(ecef, self.base_ecef, 6)
     
     def test_ned2pae(self):
-        pae = self.gps.ned2pae(self.base_ned)
+        pae = GPS.ned2pae(self.base_ned)
         assert_almost_equal(pae, list(self.base_pae), 6)
     
     def test_lla2gcc(self):
-        gcc = self.gps.lla2gcc(self.base_lla, self.base_origin)
+        gcc = GPS.lla2gcc(self.base_lla, self.base_origin)
         assert_almost_equal(gcc, self.base_gcc, 6)
 
     def test_euclidian_distance(self):

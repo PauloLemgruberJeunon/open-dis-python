@@ -17,8 +17,6 @@ __date__ = "$Jun 25, 2015 10:23:43 AM$"
 """
 Container for general GPS functions and classes
 Functions:
-    deg2rad
-    rad2deg
     euclideanDistance
     gpsWeekCheck
     keplerE
@@ -30,8 +28,7 @@ Classes:
 """
 #Import required packages
 from math import sqrt, pi, sin, cos, tan, atan, atan2
-from numpy import array, dot
-#from numarray import array, dot, zeros, Float64
+from numpy import array, dot, radians, degrees
 
 #def diag(l):
 #    length = len(l)
@@ -39,16 +36,6 @@ from numpy import array, dot
 #    for index in range(length):
 #        a[index, index] = l[index]
 #    return a
-
-
-def deg2rad(deg):
-    """Converts degrees to radians"""
-    return deg * pi / 180
-
-
-def rad2deg(rad):
-    """Converts radians to degrees"""
-    return rad * 180 / pi
 
 
 def isEven(num):
@@ -72,10 +59,10 @@ def euclideanDistance(data, dataRef=None):
 def gpsWeekCheck(t):
     """Makes sure the time is in the interval [-302400 302400] seconds, which
     corresponds to number of seconds in the GPS week"""
-    if t > 302400.:
-        t = t - 604800.
-    elif t < -302400.:
-        t = t + 604800.
+    if t > 302400.0:
+        t = t - 604800.0
+    elif t < -302400.0:
+        t = t + 604800.0
     return t
 
 
@@ -109,7 +96,8 @@ class WGS84:
     #Earth rotation rate (rad/s)
     omega_ie = 7.2921151467e-5
 
-    def g0(self, L):
+    @classmethod
+    def g0(cls, L):
         """acceleration due to gravity at the elipsoid surface at latitude L"""
         return 9.7803267715 * (1 + 0.001931851353 * sin(L)**2) / \
                         sqrt(1 - 0.0066943800229 * sin(L)**2)
@@ -122,39 +110,42 @@ class GPS:
     fL1 = fGPS * 1.54e6
     fL2 = fGPS * 1.2e6
 
-    def lla2ecef(self, lla):
+    @classmethod
+    def lla2ecef(cls, lla):
         """Convert lat, lon, alt to Earth-centered, Earth-fixed coordinates.
         Input: lla - (lat, lon, alt) in (decimal degrees, decimal degees, m)
         Output: ecef - (x, y, z) in (m, m, m)
         """
         #Decompose the input
-        lat = deg2rad(lla[0])
-        lon = deg2rad(lla[1])
+        lat = radians(lla[0])
+        lon = radians(lla[1])
         alt = lla[2]
         #Calculate length of the normal to the ellipsoid
-        N = self.wgs84.a / sqrt(1 - (self.wgs84.e * sin(lat))**2)
+        N = cls.wgs84.a / sqrt(1 - (cls.wgs84.e * sin(lat))**2)
         #Calculate ecef coordinates
         x = (N + alt) * cos(lat) * cos(lon)
         y = (N + alt) * cos(lat) * sin(lon)
-        z = (N * (1 - self.wgs84.e**2) + alt) * sin(lat)
+        z = (N * (1 - cls.wgs84.e**2) + alt) * sin(lat)
         #Return the ecef coordinates
         return (x, y, z)
 
-    def lla2gcc(self, lla, geoOrigin=''):
+    @classmethod
+    def lla2gcc(cls, lla, geoOrigin=''):
         """
         Same as lls2ecef, but accepts an X3D-style geoOrigin string for subtraction of it in ecef (gcc) cooridinates
         """
         if geoOrigin:
             lon0, lat0, a0 = [float(c) for c in geoOrigin.split()]
-            x0, y0, z0 = self.lla2ecef((lat0, lon0, a0))
+            x0, y0, z0 = cls.lla2ecef((lat0, lon0, a0))
         else:
             x0, y0, z0 = 0, 0, 0
 
-        x, y, z = self.lla2ecef(lla)
+        x, y, z = cls.lla2ecef(lla)
 
         return (x - x0, y - y0, z -z0)
 
-    def ecef2lla(self, ecef, tolerance=1e-9):
+    @classmethod
+    def ecef2lla(cls, ecef, tolerance=1e-9):
         """Convert Earth-centered, Earth-fixed coordinates to lat, lon, alt.
         Input: ecef - (x, y, z) in (m, m, m)
         Output: lla - (lat, lon, alt) in (decimal degrees, decimal degrees, m)
@@ -167,51 +158,54 @@ class GPS:
         lon = atan2(y, x)
         #Initialize the variables to calculate lat and alt
         alt = 0
-        N = self.wgs84.a
+        N = cls.wgs84.a
         p = sqrt(x**2 + y**2)
         lat = 0
         previousLat = 90
         #Iterate until tolerance is reached
         while abs(lat - previousLat) >= tolerance:
             previousLat = lat
-            sinLat = z / (N * (1 - self.wgs84.e**2) + alt)
-            lat = atan((z + self.wgs84.e**2 * N * sinLat) / p)
-            N = self.wgs84.a / sqrt(1 - (self.wgs84.e * sinLat)**2)
+            sinLat = z / (N * (1 - cls.wgs84.e**2) + alt)
+            lat = atan((z + cls.wgs84.e**2 * N * sinLat) / p)
+            N = cls.wgs84.a / sqrt(1 - (cls.wgs84.e * sinLat)**2)
             alt = p / cos(lat) - N
         #Return the lla coordinates
-        return (rad2deg(lat), rad2deg(lon), alt)
+        return (degrees(lat), degrees(lon), alt)
 
-    def ecef2ned(self, ecef, origin):
+    @classmethod
+    def ecef2ned(cls, ecef, origin):
         """Converts ecef coordinates into local tangent plane where the
         origin is the origin in ecef coordinates.
         Input: ecef - (x, y, z) in (m, m, m)
             origin - (x0, y0, z0) in (m, m, m)
         Output: ned - (north, east, down) in (m, m, m)
         """
-        llaOrigin = self.ecef2lla(origin)
-        lat = deg2rad(llaOrigin[0])
-        lon = deg2rad(llaOrigin[1])
+        llaOrigin = cls.ecef2lla(origin)
+        lat = radians(llaOrigin[0])
+        lon = radians(llaOrigin[1])
         Re2t = array([[-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)],
                     [-sin(lon), cos(lon), 0],
                     [-cos(lat)*cos(lon), -cos(lat)*sin(lon), -sin(lat)]])
         return list(dot(Re2t, array(ecef) - array(origin)))
 
-    def ned2ecef(self, ned, origin):
+    @classmethod
+    def ned2ecef(cls, ned, origin):
         """Converts ned local tangent plane coordinates into ecef coordinates
         using origin as the ecef point of tangency.
         Input: ned - (north, east, down) in (m, m, m)
             origin - (x0, y0, z0) in (m, m, m)
         Output: ecef - (x, y, z) in (m, m, m)
         """
-        llaOrigin = self.ecef2lla(origin)
-        lat = deg2rad(llaOrigin[0])
-        lon = deg2rad(llaOrigin[1])
+        llaOrigin = cls.ecef2lla(origin)
+        lat = radians(llaOrigin[0])
+        lon = radians(llaOrigin[1])
         Rt2e = array([[-sin(lat)*cos(lon), -sin(lon), -cos(lat)*cos(lon)],
                     [-sin(lat)*sin(lon), cos(lon), -cos(lat)*sin(lon)],
                     [cos(lat), 0., -sin(lat)]])
         return list(dot(Rt2e, array(ned)) + array(origin))
 
-    def ned2pae(self, ned):
+    @classmethod
+    def ned2pae(cls, ned):
         """Converts the local north, east, down coordinates into range, azimuth,
         and elevation angles
         Input: ned - (north, east, down) in (m, m, m)
@@ -220,9 +214,10 @@ class GPS:
         p = euclideanDistance(ned)
         alpha = atan2(ned[1], ned[0])
         epsilon = atan2(-ned[2], sqrt(ned[0]**2 + ned[1]**2))
-        return [p, rad2deg(alpha), rad2deg(epsilon)]
+        return [p, degrees(alpha), degrees(epsilon)]
 
-    def ecef2pae(self, ecef, origin):
+    @classmethod
+    def ecef2pae(cls, ecef, origin):
         """Converts the ecef coordinates into a tangent plane with the origin
         privided, returning the range, azimuth, and elevation angles.
         This is a convenience function combining ecef2ned and ned2pae.
@@ -230,15 +225,17 @@ class GPS:
             origin - (x0, y0, z0) in (m, m, m)
         Output: pae - (p, alpha, epsilon) in (m, degrees, degrees)
         """
-        ned = self.ecef2ned(ecef, origin)
-        return self.ned2pae(ned)
+        ned = cls.ecef2ned(ecef, origin)
+        return cls.ned2pae(ned)
 
-    def ecef2utm(self, ecef):
-        lla = self.ecef2lla(ecef)
-        utm, info = self.lla2utm(lla)
+    @classmethod
+    def ecef2utm(cls, ecef):
+        lla = cls.ecef2lla(ecef)
+        utm, info = cls.lla2utm(lla)
         return utm, info
 
-    def lla2utm(self, lla):
+    @classmethod
+    def lla2utm(cls, lla):
         """Converts lat, lon, alt to Universal Transverse Mercator coordinates
         Input: lla - (lat, lon, alt) in (decimal degrees, decimal degrees, m)
         Output: utm - (easting, northing, upping) in (m, m, m)
@@ -263,22 +260,22 @@ class GPS:
             elif 21. <= lon < 33.: zoneNumber = 35
             elif 33. <= lon < 42.: zoneNumber = 37
         #Format the zone
-        zone = "%d%c" % (zoneNumber, self.utmLetterDesignator(lat))
+        zone = "%d%c" % (zoneNumber, cls.utmLetterDesignator(lat))
         #Determine longitude origin
         lonOrigin = (zoneNumber - 1) * 6 - 180 + 3
         #Convert to radians
-        latRad = deg2rad(lat)
-        lonRad = deg2rad(lon)
-        lonOriginRad = deg2rad(lonOrigin)
+        latRad = radians(lat)
+        lonRad = radians(lon)
+        lonOriginRad = radians(lonOrigin)
         #Conversion constants
         k0 = 0.9996
-        eSquared = self.wgs84.e**2
+        eSquared = cls.wgs84.e**2
         ePrimeSquared = eSquared/(1.-eSquared)
-        N = self.wgs84.a/sqrt(1.-eSquared*sin(latRad)**2)
+        N = cls.wgs84.a/sqrt(1.-eSquared*sin(latRad)**2)
         T = tan(latRad)**2
         C = ePrimeSquared*cos(latRad)**2
         A = (lonRad - lonOriginRad)*cos(latRad)
-        M = self.wgs84.a*( \
+        M = cls.wgs84.a*( \
             (1. - \
                 eSquared/4. - \
                 3.*eSquared**2/64. - \
@@ -308,7 +305,8 @@ class GPS:
         info = [zone, k]
         return utm, info
 
-    def utmLetterDesignator(self, lat):
+    @classmethod
+    def utmLetterDesignator(cls, lat):
         """Returns the latitude zone of the UTM coordinates"""
         if -80 <= lat < -72: return 'C'
         elif -72 <= lat < -64: return 'D'
@@ -331,28 +329,3 @@ class GPS:
         elif 64 <= lat < 72: return 'W'
         elif 72 <= lat < 80: return 'X'
         else: return 'Z'
-
-
-if __name__ == "__main__":
-    wgs84 = WGS84()
-    print(wgs84.g0(1))
-    pass
-    wgs84 = WGS84()
-    gps = GPS()
-    geo_origin = '1000 1000 1000'
-    lla = (34. + 0/60. + 0.00174/3600.,
-        -117. - 20./60. - 0.84965/3600.,
-        251.702)
-    ecef = gps.lla2ecef(lla)
-    utm = gps.lla2utm(lla)
-    ned = gps.ecef2ned(ecef, [float(x) for x in geo_origin.split(' ')])
-    pae = gps.ned2pae
-    gcc = gps.lla2gcc(lla, geo_origin)
-
-    print("lla: {}".format(lla))
-    print("ecef: {}".format(ecef))
-    print("utm: {}".format(utm))
-    print("ned: {}".format(ned))
-    print("pae: {}".format(pae))
-    print("gcc: {}".format(gcc))
-
