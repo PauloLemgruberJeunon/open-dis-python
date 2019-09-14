@@ -335,6 +335,9 @@ class GPS:
 
 if __name__ == "__main__":
     wgs84 = WGS84()
+    print(wgs84.g0(1))
+    pass
+    wgs84 = WGS84()
     gps = GPS()
     lla = (34. + 0/60. + 0.00174/3600.,
         -117. - 20./60. - 0.84965/3600.,
