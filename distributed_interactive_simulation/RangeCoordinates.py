@@ -339,10 +339,20 @@ if __name__ == "__main__":
     pass
     wgs84 = WGS84()
     gps = GPS()
+    geo_origin = '1000 1000 1000'
     lla = (34. + 0/60. + 0.00174/3600.,
         -117. - 20./60. - 0.84965/3600.,
         251.702)
-    print("lla: {}".format(lla))
     ecef = gps.lla2ecef(lla)
+    utm = gps.lla2utm(lla)
+    ned = gps.ecef2ned(ecef, [float(x) for x in geo_origin.split(' ')])
+    pae = gps.ned2pae
+    gcc = gps.lla2gcc(lla, geo_origin)
+
+    print("lla: {}".format(lla))
     print("ecef: {}".format(ecef))
-    print("lla: {}".format(gps.ecef2lla(ecef)))
+    print("utm: {}".format(utm))
+    print("ned: {}".format(ned))
+    print("pae: {}".format(pae))
+    print("gcc: {}".format(gcc))
+
